@@ -1,0 +1,168 @@
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { DownloadIcon } from "lucide-react";
+
+export default function RateCardCalculator() {
+  const [followers, setFollowers] = useState(0);
+  const [engagementRate, setEngagementRate] = useState(0);
+  const [cpm, setCpm] = useState(50000);
+  const [contentType, setContentType] = useState("video");
+  const [extraService, setExtraService] = useState([]);
+  const [rate, setRate] = useState(null);
+  const [note, setNote] = useState("");
+
+  const contentTypeMultiplier = {
+    video: 1,
+    live: 1.5,
+    review: 1.2,
+    unboxing: 1.1,
+    testimonial: 0.9
+  };
+
+  const extraServiceCosts = {
+    editing: 100000,
+    adsBoost: 150000,
+    props: 75000
+  };
+
+  const handleExtras = (key) => {
+    setExtraService((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    );
+  };
+
+  const calculateRate = () => {
+    const erDecimal = engagementRate / 100;
+    const baseRate = (erDecimal * followers * cpm * contentTypeMultiplier[contentType]) / 1000;
+    const extras = extraService.reduce((sum, key) => sum + extraServiceCosts[key], 0);
+    setRate(Math.round(baseRate + extras));
+  };
+
+  const exportToText = () => {
+    const services = extraService.map((key) => {
+      if (key === "editing") return "Editing Profesional";
+      if (key === "adsBoost") return "Ads Boost";
+      if (key === "props") return "Properti Konten";
+      return key;
+    }).join(", ");
+
+    const blob = new Blob([
+      `Rate Card Creator\n\n` +
+      `Jumlah Follower: ${followers}\n` +
+      `Engagement Rate: ${engagementRate}%\n` +
+      `Jenis Konten: ${contentType}\n` +
+      `Layanan Tambahan: ${services || "Tidak ada"}\n` +
+      `Catatan Tambahan: ${note || "-"}\n\n` +
+      `💰 Estimasi Rate: Rp ${Number(rate).toLocaleString()}`
+    ], { type: 'text/plain' });
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "rate_card.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="max-w-xl mx-auto p-6 space-y-6">
+      <Card>
+        <CardContent className="space-y-4 pt-6">
+          <h2 className="text-xl font-bold">🎯 Kalkulator Rate Card Kreator</h2>
+
+          <div className="space-y-2">
+            <Label>Jumlah Follower</Label>
+            <Input
+              type="number"
+              value={followers}
+              onChange={(e) => setFollowers(Number(e.target.value))}
+              placeholder="contoh: 50000"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Engagement Rate (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              value={engagementRate}
+              onChange={(e) => setEngagementRate(Number(e.target.value))}
+              placeholder="contoh: 8.5"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>CPM Dasar (Rp)</Label>
+            <Input
+              type="number"
+              value={cpm}
+              onChange={(e) => setCpm(Number(e.target.value))}
+              placeholder="contoh: 50000"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Jenis Konten</Label>
+            <Select onValueChange={setContentType} defaultValue="video">
+              <SelectTrigger>{contentType}</SelectTrigger>
+              <SelectContent>
+                <SelectItem value="video">Video Edukasi / Hiburan</SelectItem>
+                <SelectItem value="live">Live Streaming</SelectItem>
+                <SelectItem value="review">Review Produk</SelectItem>
+                <SelectItem value="unboxing">Unboxing</SelectItem>
+                <SelectItem value="testimonial">Testimonial Sederhana</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tambahan Layanan</Label>
+            <div className="space-y-1">
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" onChange={() => handleExtras("editing")} />
+                <span>Editing Profesional (+Rp100.000)</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" onChange={() => handleExtras("adsBoost")} />
+                <span>Ads Boost (+Rp150.000)</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" onChange={() => handleExtras("props")} />
+                <span>Properti Konten (+Rp75.000)</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Catatan Tambahan</Label>
+            <Textarea
+              placeholder="Contoh: Bisa request format vertikal / horizontal, atau lainnya"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+
+          <Button onClick={calculateRate} className="w-full">
+            Hitung Rate
+          </Button>
+
+          {rate !== null && (
+            <div className="text-lg font-semibold text-center space-y-2">
+              <div>
+                💰 Estimasi Rate: <span className="text-green-600">Rp {Number(rate).toLocaleString()}</span>
+              </div>
+              <Button variant="outline" onClick={exportToText} className="mx-auto flex items-center gap-2">
+                <DownloadIcon size={16} /> Export Rate Card
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
